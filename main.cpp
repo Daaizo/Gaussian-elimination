@@ -11,16 +11,18 @@ private :
     int cols;
     float ** array;
 
-    float* arrayWithCoefficients(int step);
+
     void printMatrix(float** arr, int rows, int cols);
+    void printEquationFromMatrix();
     float** copy2DArrayToPointer(float arr[][5],int rows, int cols);
     void getPrepared2DArray();
-    bool isDiagonalValueEqualZero(int i, int j);
     void pickInput();
     void pickMethod();
+    bool isDiagonalValueEqualZero(int i, int j);
 
-
+    float* arrayWithCoefficients(int step);
     void defaultElimination();
+
 public :
 
 
@@ -131,18 +133,24 @@ float** loadData(){
 
 
 }
+void Gauss::printEquationFromMatrix(){
 
+
+}
 
 
 float* Gauss::arrayWithCoefficients(int step){
     int rows = this->rows;
     int startingRow = step;
-    float *coef = new float[rows-step];
+    float *coef = new float[rows];
+
 
     cout << "\n tablica wspolczynnikow\n ";
-    for(int i = 0 ; i < rows-step; i++){
-        coef[i] = (this->array[startingRow][step-1])/(this->array[step-1][step-1]);
+    for(int i = startingRow , j = step - 1; i < rows; i++){
+        coef[i] = (this->array[i][j])/(this->array[j][j]);
+
         cout << coef[i] << " ";
+
         startingRow++;
     }
     return coef;
@@ -189,7 +197,7 @@ void Gauss::defaultElimination(){
     int rows = this->rows;
     int cols = this->cols;
 
-
+//TODO sprwadzicz czy 1 element nie jest rowny zero i jak tak to zamienic wiersze
     float *coefficients  = arrayWithCoefficients(step);
     while(step < rows){
         cout << "\n step " << step << endl;
@@ -202,7 +210,7 @@ void Gauss::defaultElimination(){
                 }
                 else{ // wartosc na przekatnej != 0
 
-                   this->array[i][j] -=   (coefficients[i-1]*this->array[step-1][j]);
+                   this->array[i][j] -=   (coefficients[i]*this->array[step-1][j]);
                 }
 
             }
