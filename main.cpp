@@ -8,26 +8,34 @@ class Gauss{
 
 private :
     float numberCloseToZero = 1e-7;
+    float **array = nullptr;
+    float *orderOfColumns = nullptr;
     int rows;
     int cols;
-    float ** array;
-    int printSteps;
+    bool areColumnsSwapped = false;
 
     void pickInput();
     void pickMethod();
     void getPrepared2DArray();
     void setArray(float ** ar, int r, int c);
+    void loadDataFromUser();
 
     float* arrayWithCoefficients(int step);
-    void defaultElimination(int numberOfSteps);
-    void advancedElimination();
+    float* getResultFromRowEchelonForm();  // macierz schodkowa
+    void createArrayWithOrderOfColumns();
+    float* fixResult(float *result);
+    void defaultElimination(int typeOfElimantion);
     void findMaxElementAndSwapItToTheDiagonal(float **ar, int start);
-    void getResultFromRowEchelonForm();  // macierz schodkowa
+    void swapWithRowsUnderCurrentRow(int step);
+    void swapRowsEveryPossibleWay();
     bool isElementEqualZero(int i, int j);
     bool isEquationSolvable();
 public :
 
-    ~Gauss(){delete2Darray(this->array, this->rows);}
+    ~Gauss(){
+        delete2Darray(this->array, this->rows);
+        delete [] orderOfColumns;
+        }
     void menu();
 
 };
@@ -59,7 +67,7 @@ void Gauss::pickInput(){
             break;
         }
         case 2 : {
-            //loaddata here
+            this->loadDataFromUser();
             break;
         }
         default:{
@@ -112,57 +120,76 @@ void Gauss::getPrepared2DArray(){
 }
 
 
+void  Gauss::loadDataFromUser(){
+    int rows, cols;
+    cout << " podaj ilosc niewiadomych : " ;
+    cin >> cols;
+    cout << " podaj ilosc rownan : ";
+    cin >> rows;
+    float **ar = create2DArray(rows,cols);
+    for(int i = 0; i <rows; i++){
+        cout << " rownanie " << i + 1 << " \n";
+        for(int j = 0; j <cols; j++){
+            if(j<cols -1) cout << "x" << j +1 << "  = ";
+            else cout << "wyraz wolny = ";
+            cin >> ar[i][j];
+
+            }
+    }
+    this->setArray(ar,rows,cols);
+}
 
 void Gauss::pickMethod(){
 
     int choice = 0,temp = 0;
-    cout << " \n1.Podstawowa elimacja Gaussa\n2.Elminacja z wyborem elementu max" ;
+    cout << " \n1.Podstawowa elimacja Gaussa\n2.Elminacja z wyborem elementu max w kolumnie\n3.Elminacja z pelnym wyborem elementu max " ;
     cout << endl;
     cin >> choice;
 
     cout << " czy wystwetlac rozwiazanie krok po kroku ? 1 - tak, 2 - nie ";
     cin >> temp;
     if(temp == 1 ){
-        this->printSteps = 1;
         cout << "\nMacierz wspolczynnikow powiekszona o wektor wyrazow wolnych :";
         print2DArray(this->array,this->rows, this->cols);
     }
     else {
-        cout.setstate(ios_base::failbit); // wylaczanie cout
+        cout.setstate(ios_base::failbit); // 'wylaczenie' cout
     }
+    if(choice > 0 && choice < 4){
+        defaultElimination(choice);
+        cout.clear(); // 'wlaczanie' cout
 
-    switch(choice){
-        case 1:{
-            defaultElimination(0);
-            if(isEquationSolvable()){
-                 getResultFromRowEchelonForm();
+        if(isEquationSolvable()){
+            if(this->areColumnsSwapped){
+                createArrayWithOrderOfColumns();
+                fixResult(float *result);
+            }
+            float* result = getResultFromRowEchelonForm();
+            for(int i =0 ;i <  this->cols -1;i++){
+            cout << result[i] << " ";
+       // co z tymi zamienionymi kolumnami ?
             }
 
-            break;
-        }
-        case 2:{
-            defaultElimination(1);
-            if(isEquationSolvable()){
-                 getResultFromRowEchelonForm();
-                 // co z tymi zamienionymi kolumnami ?
-            }
-            break;
-        }
-        default : {
-            cout << " wybrano zly numer ";
-            break;
         }
     }
+    else{
+        cout << " wybrano zly numer metody";
+        exit(0);
+    }
+
+
+
+
 }
-void Gauss::getResultFromRowEchelonForm(){
-    cout.clear();
+float* Gauss::getResultFromRowEchelonForm(){
+
     int rows = this->rows;
     float **ar = this->array;
     int lastColumn = this->cols -1 ;
-    float *result = new float[rows];
+    float *result = new float[lastColumn-1];
     float temp = 0;
     rows--;
-    result[rows] = (ar[rows][lastColumn])/(ar[rows][rows]);
+    result[lastColumn-1] = (ar[rows][lastColumn])/(ar[rows][rows]);
     cout << "x"<<rows+1<< "=" << result[rows]<< "\t" ;
     for(int i = rows -1 ;i >= 0 ; i--){ // start od przedostatniego wiersza
         temp = 0 ;
@@ -174,87 +201,73 @@ void Gauss::getResultFromRowEchelonForm(){
         cout << "x"<<i+1<< "=" <<result[i] <<  "\t" ;
 
     }
-    delete [] result;
+    return result;
+}
 
-
-
+void Gauss::createArrayWithOrderOfColumns(){
+    for(int i = 0; i < this->cols - 1;i++ ){
+            this->orderOfColumns[i] = i;
+            }
 }
 
 float* Gauss::arrayWithCoefficients(int step){
     int rows = this->rows;
     int startingRow = step;
     float *coef = new float[rows];
-
-
-    if(this->printSteps == 1) cout << "\n tablica wspolczynnikow :  ";
     for(int i = startingRow , j = step - 1; i < rows; i++){
         coef[i] = (this->array[i][j])/(this->array[j][j]);
-        if(this->printSteps == 1) cout << coef[i] << ", ";
+        if(coef[i]) cout << " wspolczynnik dla wiersza nr " << i + 1 << " = " << coef[i] << endl;
         startingRow++;
     }
-    if(this->printSteps == 1) cout << endl;
+
     return coef;
 }
+void Gauss::fixResult(float *result){
+    for(int i =0;i < this->cols -1 ; i++){
+        if( result[i] != i){
+            swap(result[i])
+        }
+    }
+}
 
-
-void Gauss::defaultElimination(int advancedElimantion){
+void Gauss::defaultElimination(int typeOfElimination){
     int step = 1;
     int rows = this->rows;
     int cols = this->cols;
-    int temp = 1;
+    float *coefficients ;
 
-    while(isElementEqualZero(0,0)){
-        if(temp == rows){
-            cout << "ukladu ma nieskonczenie wiele rozwiazan";
-            exit(15);
-        }
-        swapRows(this->array, cols, 0, temp);
-        if(this->printSteps == 1) {
-            cout << "\n pierwszy element = 0, zamiana wierszy ";
-            print2DArray(this->array,rows,cols);
-
-            }
-
-        temp++;
+    if(isElementEqualZero(0,0)){
+        swapRowsEveryPossibleWay();
     }
 
-    float *coefficients  ;
-    while(step < this->rows){
+    while(step < rows){
+
         if(isElementEqualZero(step,step)){
-            cout << "\n elemnt na przekatnej = 0, zamiana wierszy  ";
-            int temp = step + 1;
-            while(temp < rows || isElementEqualZero(step,step)){
-                swapRows(this->array,cols, step, temp );
-                print2DArray(this->array,rows,cols);
-                temp++;
-            }
-            if(isElementEqualZero(step,step)){
-                cout << "element na przekatnej = 0 w kazdym ukladzie wierszy, dana metoda gaussa nie moze byc kontynuowana";
-                exit(3);
-                }
-            }
-        if(advancedElimantion){
+            swapWithRowsUnderCurrentRow(step);
+        }
+        cout << endl << string(100,'-') << " \n\tkrok " << step << endl <<  string(100,'-') <<  endl;
+        if(typeOfElimination == 3){     // elimanacja z pelnym wyborem elementu max
              findMaxElementAndSwapItToTheDiagonal(this->array ,step - 1);
         }
-        cout << "\n\n krok " << step << endl;
-
+        else if(typeOfElimination == 2){    // elimanacja z wyborem elementu max w kolumnie
+            //metoda srednia
+        }
         coefficients = arrayWithCoefficients(step);
         for(int i = step ; i < rows ; i++){
             for(int j = step-1; j < cols ;j++){
                 if(coefficients[i]){
-                    this->array[i][j] -=   (coefficients[i]*this->array[step-1][j]);
+                    this->array[i][j] -= (coefficients[i]*this->array[step-1][j]);
                 }
-                else  {
-                        cout << " wspolczynnik dla wiersza nr " << i + 1 << " = 0, wartosci w tym wierszu nie zmienia sie \n";
-                        j = cols -1;
+                else{
+                    cout << " wspolczynnik dla wiersza nr " << i + 1 << " = 0, wartosci w tym wierszu nie zmienia sie ";
+                    j = cols -1;
                 }
             }
         }
+        cout << "\nmacierz po obliczeniu nowych wartosci : ";
         print2DArray(this->array,rows,cols);
         step++;
-
     }
-
 }
 
 
@@ -262,6 +275,8 @@ void Gauss::findMaxElementAndSwapItToTheDiagonal(float **ar, int start){
     float max = fabs(ar[start][start]);
     int row = 0;
     int column = 0 ;
+
+
     for(int i = start; i < this->rows ; i++){
         for(int j = start; j < this->cols - 1; j++){
             if(fabs(ar[i][j]) >= max){
@@ -270,27 +285,68 @@ void Gauss::findMaxElementAndSwapItToTheDiagonal(float **ar, int start){
                 column = j;
             }
         }
-
     }
-
-    cout << "\nmaksymalny element z macierzy glownej co do wartosci bezwglednej to : " << max
+    cout << "\nmaksymalny element co do wartosci bezwglednej to : " << max
         << " znajduje sie on na pozycji " << "[" << row +1 << "]"<< " [" << column +1<< "]";
-
-      if(start != row ) {
+    if(start != row ) {
         swapRows(ar,this->cols,start,row);
 
-        cout << "\n zamiana wiersza " << start +1<< " z wiersztem " << row + 1;
+        cout << "\n zamiana wiersza " << start +1<< " z wierszem " << row + 1;
         print2DArray(this->array, this->rows, this->cols);
     }
-
+    else cout << "\n element znajduje sie w odpowiednim wierszu";
     if(start != column ){
         swapColumns(ar,this->rows,start,column);
-        cout << "\n po zamanie kolumny  kolumny "<< start + 1 <<" z kolumna " << column + 1 ;
+        cout << "\n zamiana kolumny "<< start + 1 <<" z kolumna " << column + 1 ;
+
         print2DArray(this->array, this->rows, this->cols);
+        this->areColumnsSwapped = true;
         //odnotowac zamiane kolumn i zamienic po ustaleniu x'ow
+    }
+    else cout << "\n element znajduje sie w odpowiedniej kolumnie\n";
+}
+
+void Gauss::swapWithRowsUnderCurrentRow(int step){
+    cout << "\n elemnt na przekatnej = 0, zamiana wierszy  ";
+    int temp = step + 1;
+    while(temp < this->rows || isElementEqualZero(step,step)){
+        swapRows(this->array,this->cols, step, temp );
+        print2DArray(this->array,this->rows,this->cols);
+        temp++;
+    }
+    if(isElementEqualZero(step,step)){
+        cout.clear(); // 'wlaczanie' cout
+        cout << "element na przekatnej = 0 w kazdym ukladzie wierszy, dana metoda gaussa nie moze byc kontynuowana";
+        exit(3);
+        }
+
+}
+float* Gauss::fixResult(float *result){
+    for(int i =0;i < this->cols-1 ; i++){
+        if( this->orderOfColumns[i] !=i ){
+            temp = order[i];
+            swap(result[temp], result[i]);
+            swap(this->orderOfColumns[temp], this->orderOfColumns[i]);
+            i = 0;
+        }
+    }
+    return result;
+}
+void Gauss::swapRowsEveryPossibleWay(){
+    int temp = 1;
+    while(isElementEqualZero(0,0)){
+        if(temp == rows){
+            cout << "ukladu ma nieskonczenie wiele rozwiazan";
+            exit(15);
+        }
+        swapRows(this->array, this->cols, 0, temp);
+        cout << "\n pierwszy element = 0, zamiana wierszy ";
+        print2DArray(this->array,this->rows,this->cols);
+        temp++;
     }
 
 }
+
 
 void Gauss::setArray(float ** ar, int r, int c){
         this->array = ar;
@@ -299,13 +355,14 @@ void Gauss::setArray(float ** ar, int r, int c){
     }
 
 bool Gauss::isEquationSolvable(){
+    cout.clear(); // 'wlaczanie' cout
     int lastColumn = this->cols - 1;
     int lastRow = this->rows - 1;
-    if(this->array[lastRow][lastColumn - 1] == 0 && this->array[lastRow][lastColumn] == 0 ){
+    if(isElementEqualZero(lastRow,lastColumn - 1) && isElementEqualZero(lastRow,lastColumn) ){
         cout << "Uklad rownan ma nieskonczenie wiele rozwiazan ";
         return false;
     }
-    else if(this->array[lastRow][lastColumn - 1] == 0 && this->array[lastRow][lastColumn] != 0){
+    else if(isElementEqualZero(lastRow,lastColumn - 1) && !isElementEqualZero(lastRow,lastColumn)){
         cout << "Uklad sprzeczny - nie ma zadnego rozwiazania ";
         return false;
     }
