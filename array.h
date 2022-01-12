@@ -1,6 +1,7 @@
 #ifndef ARRAY_H_INCLUDED
 #define ARRAY_H_INCLUDED
 #include <iostream>
+
 using namespace std;
 
 float** copy2DArrayToPointer(float arr[][5],int rows, int cols){
@@ -40,9 +41,8 @@ void print2DArray(float arr[][5],int rows, int cols ){
     }
 }
 
-
-void print2DArray( float **arr,  int rows,int cols){
-    cout << endl;
+void print2DArray(float arr[][4],int rows, int cols ){
+  cout << endl;
     for(int i = 0;i < rows ;i++){
         for(int j = 0; j < cols; j++){
             cout.width(7);
@@ -53,6 +53,29 @@ void print2DArray( float **arr,  int rows,int cols){
     }
 }
 
+void print2DArray( float **arr,  int rows,int cols){
+    cout << endl;
+    for(int i = 0;i < rows ;i++){
+        for(int j = 0; j < cols; j++){
+            cout.width(7);
+            cout.precision(4);
+
+            if(fabs(arr[i][j]) <= 1e-5){
+                cout <<"0" <<" ";
+            }
+            else cout << arr[i][j] <<  " ";
+        }
+        cout << endl;
+    }
+}
+
+float **create2DArray(int rows, int cols){
+    float **ptr = new float*[rows];
+    for (int i = 0; i < rows; ++i) {
+        ptr[i] = new float[cols];
+    }
+    return ptr;
+}
 void delete2Darray(float **ar, int rows){
         for(int i = 0; i < rows; ++i) {
             delete [] ar[i];
@@ -79,5 +102,7 @@ void swapColumns(float **ar,int numberOfRows, int col1, int col2){
         swap(ar[i][col1],ar[i][col2]);
         }
 }
+
+
 
 #endif // ARRAY_H_INCLUDED
